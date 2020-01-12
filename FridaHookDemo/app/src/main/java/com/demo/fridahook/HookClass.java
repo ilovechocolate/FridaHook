@@ -77,7 +77,7 @@ public class HookClass {
         Log.d(TAG, "helloFromNative = " + helloFromNative());
         Log.d(TAG, "testNativeInt number(666) = " + testNativeInt(888));
         Log.d(TAG, "testNativeBoolean flag(true) = " + testNativeBoolean(true));
-        Log.d(TAG, "testNativeString string(Hello, C++) = " + testNativeString("Hello from Java"));
+        Log.d(TAG, "testNativeString string(Hello from Java!) = " + testNativeString("Hello from Java!"));
         NormalClass[] newNormalClass = testNativeArray(normalClasses);
         for (int i = 0; i < newNormalClass.length; i ++) {
             Log.d(TAG, "testNativeArray newNormalClass[" + i + "] = " + newNormalClass[i].getContent());

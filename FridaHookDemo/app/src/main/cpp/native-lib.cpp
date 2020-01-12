@@ -15,7 +15,7 @@ int testAdd(int x, int y) {
 }
 
 static jstring sayHello(JNIEnv *env, jobject) {
-    std::string hello = "Hello from C++";
+    std::string hello = "Hello, Java!";
     return env->NewStringUTF(hello.c_str());
 }
 
@@ -49,7 +49,7 @@ static jstring testSting(JNIEnv *env, jobject, jstring test) {
     LOGD("testSting called! GetStringUTFRegion = %s", buf);
 
     // 返回 jstring
-    return env->NewStringUTF("Hello, Java!");
+    return env->NewStringUTF("Hello from C++!");
 }
 
 static jobjectArray testArray(JNIEnv *env, jobject, jobjectArray array) {

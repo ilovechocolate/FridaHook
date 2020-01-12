@@ -29,19 +29,7 @@ function getSymbolAddr(module, symbol_sig) {
     if (address != null) {
         Interceptor.attach(address, {
             onEnter: function(args) {
-//                send("open(" + Memory.readCString(args[0]) + "," + args[1] + ")");
-    //            //获取函数名
-    //            var method_name=args[2].add(0x10).readPointer().readUtf8String();
-    //            //获取函数地址
-    //            var method_insns=args[2].add(0x20).readPointer();
-    //            //判断是否是所要查找函数
-    //            if(method_name=='doCommandNative'){
-    //                //创建模块快照
-    //                var mod_map=new ModuleMap();
-    //                var mod=mod_map.find(method_insns);
-    //                var offset=method_insns.sub(mod.base);
-    //                ("module_name: "+mod.name+"       "+"offset: "+offset.toString());
-    //            }
+                send("hook '" + symbol_sig + "' args = " + parseInt(args[0]) + ", " + parseInt(args[1]));
             },
             onLeave: function() {}
         });
@@ -73,6 +61,7 @@ function getRegisterInfo(module) {
                     var sig = Memory.readCString(Memory.readPointer(methods_ptr.add(offset*3*i+offset)));
                     var address = Memory.readPointer(methods_ptr.add(offset*(3*i+2)));
                     send("methods name = " + name + ", sig = " + sig + ", address = " + ptr(address) + ", offset = " + ptr(address).sub(module_base));
+
                 }
             },
             onLeave: function() {}
@@ -102,153 +91,121 @@ var testNativeStringOff = 0x9f68;
 var testNativeArrayOff = 0xa098;
 var testAddOff = 0x99fc;
 
-// get native function and invoke
-var testAddFunc = new NativeFunction(new NativePointer(testAddAddr), "int", ["int", "int"]);
-send("testAdd(111, 222) = " + testAddFunc(111, 222));
-// hook native function testAdd
-Interceptor.attach(testAddAddr, {
-    onEnter: function(args) {
-        send("before hook : testAddr(" + parseInt(args[0]) + ", " + parseInt(args[1]) + ")");
-        args[0] = ptr(333);
-        args[1] = ptr(444);
-        send("before hook : testAddr(" + parseInt(args[0]) + ", " + parseInt(args[1]) + ")");
-    },
-    onLeave: function(retval) {
-        retval.replace(789);
-    }
-});
+if (base != null) {
+    Java.perform(function(){
+        var str = Java.use("java.lang.String");
 
-Interceptor.attach(new NativePointer(base).add(helloFromNativeOff), {
-    onEnter: function(args) {},
-    onLeave: function(retval) {
+        // get native function and invoke
+        var testAddFunc = new NativeFunction(testAddAddr, "int", ["int", "int"]);
+        send("testAdd(111, 222) = " + testAddFunc(111, 222));
+        // hook native function testAdd
+        Interceptor.attach(testAddAddr, {
+            onEnter: function(args) {
+                send("before hook : testAdd(" + parseInt(args[0]) + ", " + parseInt(args[1]) + ")");
+                args[0] = ptr(333);
+                args[1] = ptr(444);
+                send("after hook : testAdd(" + parseInt(args[0]) + ", " + parseInt(args[1]) + ")");
+            },
+            onLeave: function(retval) {
+                send("before hook : testAdd = " + parseInt(retval));
+                retval.replace(789);
+                send("after hook : testAdd = " + parseInt(retval));
+            }
+        });
 
-    }
-});
+        // hook native function sayHello
+        Interceptor.attach(new NativePointer(base).add(helloFromNativeOff), {
+            onEnter: function(args) {},
+            onLeave: function(retval) {
+                send("before hook : sayHello = " + Java.cast(retval, str));
+                var test = Java.vm.getEnv().newStringUtf("SayHello by Frida!");
+                retval.replace(ptr(test));
+                send("after hook : sayHello = " + Java.cast(test, str));
+            }
+        });
 
-//        send("hooked helloFromNative retval = " + );
-//        retval.replace("Hello, Frida!");
-//        var s = Java.cast(retval, str);
-//        send("say() 原返回值：" + s);
-//        //调用env下的方法，构造jstring类型
-//        var env = Java.vm.getEnv();
-//        var jstring = env.newStringUtf("frida hook native");
-//        retval.replace(ptr(jstring));
-//        send("修改say()返回值:" + Java.cast(jstring, str));
-//
-//
-//        var feditptr = new NativePointer(soAddr).add(fedit);
-//        Interceptor.attach(feditptr, {
-//            onEnter: function (args) {
-//                send("onEnter edit()");
-//                send("edit() env：" + args[0] + "  jobject：" + args[1] + " jint:" + args[2].toInt32());
-//                //参数修改使用new NativePointer(s)  简写ptr(s)
-//                args[2] = ptr(4);
-//                send("hook edit() 修改后的参数jint：" + args[2]);
-//            },
-//            onLeave: function (retval) {
-//                send("onLeave edit()");
-//            }
-//        });
-//
-//        var fmystrptr = new NativePointer(soAddr).add(fmystr);
-//        send("fmystrptr:" + fmystrptr);
-//        Interceptor.attach(fmystrptr, {
-//            onEnter: function (args) {
-//                send("onEnter mystr()");
-//                send("mystr() env：" + args[0] + "  jobject：" + args[1] + " jstring:" + args[2]);
-//                var s = Java.cast(args[2], str);
-//                send("mystr() jstring参数：" + s);
-//
-//                //send("mystr："+Memory.readUtf16String(args[2],7));
-//                //send("mystr："+Memory.readUtf8String(args[2],7));
-//            },
-//            onLeave: function (retval) {
-//                send("onLeave mystr()");
-//                var env = Java.vm.getEnv();
-//                var jstring = env.newStringUtf("frida hook native");
-//                send("修改返回值jstring:" + jstring);
-//                retval.replace(ptr(jstring));
-//            }
-//        });
-//        // Java.choose("com.example.goal.DiyClass",{
-//        //     onMatch:function(instance){
-//        //         send("DiyClass instance:"+instance);
-//        //     },
-//        //     onComplete:function(){
-//        //
-//        //     }
-//        //
-//        // });
-//        var fmyarrayptr = ptr(soAddr).add(fmyarray);
-//        //var fmyarrayptr = new NativePointer(soAddr).add(fmyarray);
-//        send("fmyarrayptr:" + fmyarrayptr);
-//        //var argptr;
-//        Interceptor.attach(fmyarrayptr, {
-//            onEnter: function (args) {
-//                send("onEnter myarray()");
-//                send("mystr() env：" + args[0] + "  jobject：" + args[1] + " jobjectArray:" + args[2]);
-//                send("jobjectArray参数：" + args[2].toString());
-//                //可以在onEnter中通过this.xxx保存变量 在onLeave中通过this.xxx读取
-//                this.argptr = args[2]
-//
-//                //jstring 不同于wchar_t* (jchar*) 与 char*
-//                //send("mystr："+Memory.readUtf16String(args[2],7));
-//                //send("mystr："+Memory.readUtf8String(args[2],7));
-//            },
-//            onLeave: function (retval) {
-//                send("onLeave myarray()");
-//                send("argptr:" + this.argptr);
-//
-//                var env = Java.vm.getEnv();
-//                var cla = env.findClass("com/example/goal/DiyClass");
-//                send("clazz:" + cla);
-//                var initid = env.getMethodId(cla, "<init>", "(I)V");
-//                send("initid:" + initid);
-//                var setid = env.getMethodId(cla, "setData", "(I)V");
-//                send("setid:" + setid);
-//                var getid = env.getMethodId(cla, "getData", "()I");
-//                send("getid:" + getid);
-//                //frida 中env 方法参考frida-java/lib/env.js  本人能力有限，有些方法确实搞不懂
-//                //调用env中的allocObject()方法创建对象，未初始化，
-//                var obj1 = env.allocObject(cla);
-//                send("obj1:" + obj1);
-//
-//                var obj2 = env.allocObject(cla);
-//                send("obj2:" + obj2);
-//
-//                var rtarray = env.newObjectArray(2, cla, ptr(0));
-//                send("env.newObjectArray:" + rtarray);
-//
-//                //获取DiyClass类中public void setData(int data)方法
-//                var nvmethod = env.nonvirtualVaMethod("void", ["int"]);
-//                //NativeType CallNonvirtual<type>Method(JNIEnv *env, jobject obj,jclass clazz, jmethodID methodID, ...);
-//                //设置obj1中data值
-//                nvmethod(env, obj1, cla, setid, 11);
-//                //设置obj2中data值
-//                nvmethod(env, obj2, cla, setid, 22);
-//                send("env.nonvirtualVaMethod(JNIEnv,jobject,jclass,jmethodid,args):" + nvmethod);
-//                //设置数组中的元素
-//                env.setObjectArrayElement(rtarray, 0, obj1);
-//                env.setObjectArrayElement(rtarray, 1, obj2);
-//                send("env.newObjectArray:" + rtarray);
-//
-//                send("原retval:" + retval);
-//                retval.replace(ptr(rtarray));
-//                send("修改后retval:" + retval);
-//
-//                // //堆中分配空间
-//                // var memo=Memory.alloc(4);
-//                // //写入数据
-//                // Memory.writeInt(memo,0x40302010);
-//                // // 读取数据
-//                // console.log(hexdump(memo, {
-//                //         offset: 0,
-//                //         length: 64,
-//                //         header: true,
-//                //         ansi: true
-//                // }));
-//            }
-//        });
-//
-//    });
-//});
+        // hook native function testInt
+        Interceptor.attach(new NativePointer(base).add(testNativeIntOff), {
+            onEnter: function(args) {
+                send("before hook : testInt(" + parseInt(args[2]) + ")");
+                args[2] = ptr(999);
+                send("after hook : testInt(" + parseInt(args[2]) + ")");
+            },
+            onLeave: function(retval) {}
+        });
+
+        // hook native function testBoolean
+        Interceptor.attach(new NativePointer(base).add(testNativeBooleanOff), {
+            onEnter: function(args) {
+                send("before hook : testBoolean(" + args[2] + ")");
+            },
+            onLeave: function(retval) {
+                retval.replace(ptr(0x1))
+                send("after hook : testBoolean = " + retval);
+            }
+        });
+
+        // hook native function testSting
+        Interceptor.attach(new NativePointer(base).add(testNativeStringOff), {
+            onEnter: function(args) {
+                send("before hook : testSting(" + Java.cast(ptr(args[2]), str) + ")");
+                var test = Java.vm.getEnv().newStringUtf("Hello from Frida!");
+                args[2] = ptr(test);
+                send("after hook : testSting(" + Java.cast(ptr(args[2]), str) + ")");
+            },
+            onLeave: function(retval) {
+                send("before hook : testSting = " + Java.cast(retval, str));
+                var test = Java.vm.getEnv().newStringUtf("Bye from Frida!");
+                retval.replace(ptr(test));
+                send("before hook : testSting = " + Java.cast(retval, str));
+            }
+        });
+
+        // hook native function testArray
+        Interceptor.attach(new NativePointer(base).add(testNativeArrayOff), {
+            onEnter: function(args) {
+                this.args2 = args[2];
+            },
+            onLeave: function(retval) {
+                var env = Java.vm.getEnv();
+                // get the java class and method id by reflection
+                var clazz = env.findClass("com/demo/fridahook/NormalClass");
+                var initId = env.getMethodId(clazz, "<init>", "(Ljava/lang/String;)V");
+                var getId = env.getMethodId(clazz, "getContent", "()Ljava/lang/String;");
+                // get the Java class object by args and call the getContent method
+                var getContent = env.nonvirtualVaMethod('pointer', ['void']);
+                for (var i = 0; i < 3; i++) {
+                    var object = env.getObjectArrayElement(this.args2, i);
+                    var content = getContent(env, object, clazz, getId);
+                    send("testArray : NormalClass[" + i + "] args = " + Java.cast(content, str));
+                }
+                for (var i = 0; i < 3; i++) {
+                    var object = env.getObjectArrayElement(retval, i);
+                    var content = getContent(env, object, clazz, getId);
+                    send("before hook : NormalClass[" + i + "] return = " + Java.cast(content, str));
+                }
+                // call the init method to new Java object array
+                var init = env.nonvirtualVaMethod('void', ['pointer']);
+                var object1 = env.allocObject(clazz);
+                var object2 = env.allocObject(clazz);
+                var object3 = env.allocObject(clazz);
+                var content1 = env.newStringUtf("Frida NormalClass1");
+                var content2 = env.newStringUtf("Frida NormalClass2");
+                var content3 = env.newStringUtf("Frida NormalClass3");
+                init(env, object1, clazz, initId, content1);
+                init(env, object2, clazz, initId, content2);
+                init(env, object3, clazz, initId, content3);
+                var newArray = env.newObjectArray(3, clazz, ptr(0));
+                env.setObjectArrayElement(newArray, 0, object1);
+                env.setObjectArrayElement(newArray, 1, object2);
+                env.setObjectArrayElement(newArray, 2, object3);
+                retval.replace(newArray);
+                for (var i = 0; i < 3; i++) {
+                    var object = env.getObjectArrayElement(retval, i);
+                    var content = getContent(env, object, clazz, getId);
+                    send("after hook : NormalClass[" + i + "] return = " + Java.cast(content, str));
+                }
+            }
+        });
+    });
+}
