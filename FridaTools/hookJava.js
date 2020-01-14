@@ -1,6 +1,6 @@
 setImmediate(function(){
     Java.perform(function(){
-        console.log("start frida hook ~~~ ");
+        send("start frida hook ~~~ ");
 
         // hook java function
         var hookClass = Java.use("com.demo.fridahook.HookClass");
@@ -77,10 +77,6 @@ setImmediate(function(){
             send("after hook : HookClass.testArray(" + newArray[0].getContent() + ")");
             return this.testArray(newArray);
         };
-
-        var obj = Java.use("java.lang.Object");
-        var Exception = Java.use("java.lang.Exception");
-        var str = Java.use("java.lang.String");
 
         // hook abstract class
         var absClass = Java.use("com.demo.fridahook.HookClass$1");

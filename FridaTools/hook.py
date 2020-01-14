@@ -24,7 +24,7 @@ def get_javascript(filepath):
 
 package_name = "com.demo.fridahook"
 javascript_file = "./hookNative.js"
-device = frida.get_remote_device()
+device = frida.get_usb_device()
 # pid = device.spawn([package_name])
 session = device.attach(package_name)
 # device.resume(pid)
