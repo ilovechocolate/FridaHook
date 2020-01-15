@@ -39,6 +39,7 @@ setImmediate(function(){
         // todo
         // func.invoke(this, Java.array("java.lang.Class",[string.$init("reflection hook").class]));
         send("call 'testString' by reflection");
+        string.$dispose;
 
         // test invoke normal class
         var normalClass = Java.use("com.demo.fridahook.NormalClass");
@@ -62,6 +63,7 @@ setImmediate(function(){
             send("overload HookClass.testInt(" + arguments[0] + ")");
             return this.testInt(3333);
         }
+        clazz.$dispose;
 
         // hook function testString
         hookClass.testString.implementation = function(test){
@@ -77,6 +79,8 @@ setImmediate(function(){
             send("after hook : HookClass.testArray(" + newArray[0].getContent() + ")");
             return this.testArray(newArray);
         };
+        normalClass.$dispose;
+        hookClass.$dispose;
 
         // hook abstract class
         var absClass = Java.use("com.demo.fridahook.HookClass$1");
@@ -84,6 +88,7 @@ setImmediate(function(){
             send("overload AbstractClass.setAbs(" + arguments[0] + ")");
             return this.setAbs("hook setAbs");
         };
+        absClass.$dispose;
 
         // overload inner class
         var innerClass = Java.use("com.demo.fridahook.HookClass$InnerClass");
@@ -104,6 +109,7 @@ setImmediate(function(){
             send("overload HookClass.InnerClass.testInner(" + test + ")");
             return this.testInner("hook testInner");
         };
+        innerClass.$dispose;
 
     });
 });

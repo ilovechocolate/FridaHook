@@ -215,5 +215,6 @@ if (base != null) {
                 }
             }
         });
+        str.$dispose;
     });
 }

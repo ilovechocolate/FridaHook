@@ -49,6 +49,7 @@ function getClassInstance(className){
 function getAllMethods(className){
     var clazz = Java.use(className);
     var methods = clazz.class.getDeclaredMethods();
+    clazz.$dispose;
     if(methods.length > 0){
         log("getDeclaredMethods of class '" + className + "':");
         methods.forEach(function(method){
@@ -61,6 +62,7 @@ function getAllMethods(className){
 function getAllMethodsByObject(classObject){
     var clazz = Java.cast(classObject.getClass(), Java.use('java.lang.Class'));
     var methods = clazz.getDeclaredMethods();
+    clazz.$dispose;
     if(methods.length > 0){
         log("getDeclaredMethods of class '" + classObject.getClass() + "':");
         methods.forEach(function(method){
@@ -73,6 +75,7 @@ function getAllMethodsByObject(classObject){
 function getAllFields(className){
     var clazz = Java.use(className);
     var fields = clazz.class.getDeclaredFields();
+    clazz.$dispose;
     if(fields.length > 0){
         log("getDeclaredFields of class '" + className + "':");
         fields.forEach(function(field){
@@ -85,6 +88,7 @@ function getAllFields(className){
 function getAllFieldsByObject(classObject){
     var clazz = Java.cast(classObject.getClass(), Java.use('java.lang.Class'));
     var fields = clazz.getDeclaredFields();
+    clazz.$dispose;
     if(fields.length > 0){
         log("getDeclaredFields of class '" + classObject.getClass() + "':");
         fields.forEach(function(field){
@@ -109,11 +113,13 @@ function throwException(message){
 function hookMethod(className, methodName, callback){
     var clazz = Java.use(className);
     clazz[methodName].implementation = callback;
+    clazz.$dispose;
 }
 
 function hookMethod(className, methodName, callback){
     var clazz = Java.use(className);
     clazz[methodName].implementation = callback;
+    clazz.$dispose;
 }
 
 /* locating the specific class and hook the override method
@@ -125,6 +131,7 @@ function hookMethod(className, methodName, callback){
 function overloadMethod(className, methodName, argumentTypes, callback){
     var clazz = Java.use(className);
     clazz[methodName].overload.apply(this, argumentTypes).implementation = callback;
+    clazz.$dispose;
 }
 
 // get the StackTrace
@@ -133,6 +140,7 @@ function getStackTrace(){
     for(var i = 2; i < stack.length; i++){
         log("getStackTrace[" + (i-2) + "] : " + stack[i].toString());
     }
+    stack.$dispose;
 }
 
 // enumerating all loaded modules

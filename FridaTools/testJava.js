@@ -35,6 +35,8 @@ setImmediate(function(){
         // todo
 //        func.invoke(this, Java.array("java.lang.Class",[string.$init("reflection hook").class]));
         log("call 'testString' by reflection");
+        hookClass.$dispose;
+        string.$dispose;
 
         // test invoke normal class
         var normalClass = Java.use("com.demo.fridahook.NormalClass");
@@ -58,6 +60,7 @@ setImmediate(function(){
             log("hook HookClass.testInt(" + arguments[0] + ")");
             return this.testInt(3333);
         });
+        clazz.$dispose;
 
         // hook function testString
         hookMethod(hookClassName, "testString", function(test){
@@ -72,6 +75,7 @@ setImmediate(function(){
             log("after hook : HookClass.testArray(" + newArray[0].getContent() + ")");
             return this.testArray(newArray);
         });
+        normalClass.$dispose;
 
         // hook abstract class
         overloadMethod("com.demo.fridahook.HookClass$1", "setAbs", ["java.lang.String"], function(test) {

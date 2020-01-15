@@ -123,5 +123,6 @@ if (base != null) {
                 log("after hook : NormalClass[" + i + "] return = " + Java.cast(content, str));
             }
         });
+        str.$dispose;
     });
 }
