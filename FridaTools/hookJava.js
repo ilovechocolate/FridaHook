@@ -80,6 +80,11 @@ setImmediate(function(){
             return this.testArray(newArray);
         };
         normalClass.$dispose;
+
+        hookClass.display.implementation = function() {
+            send("hook display");
+            this.display();
+        };
         hookClass.$dispose;
 
         // hook abstract class
@@ -113,3 +118,20 @@ setImmediate(function(){
 
     });
 });
+
+function callDisplay() {
+    Java.perform(function(){
+        Java.choose("com.demo.fridahook.HookClass", {
+            onMatch: function(instance) {
+                console.log("Found instance of '" + instance + "'");
+                instance.display();
+            },
+            onComplete: function() {}
+        });
+    });
+}
+
+rpc.exports = {
+    // 导出名不可以有大写字母或者下划线
+    calldisplay : callDisplay
+};

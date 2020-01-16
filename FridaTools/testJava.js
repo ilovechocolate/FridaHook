@@ -5,7 +5,7 @@ setImmediate(function(){
         // hook java function
         var hookClassName = "com.demo.fridahook.HookClass";
         var hookClass = Java.use(hookClassName);
-        overloadMethod(hookClassName, "$init", ["int", "java.lang.String"], function(){
+        hookOverloadMethod(hookClassName, "$init", ["int", "java.lang.String"], function(){
             log("HookClass(" + arguments[0] + ", " + arguments[1] + ")");
             return this.$init(200, "HookClass got hooked!");
         });
@@ -78,13 +78,13 @@ setImmediate(function(){
         normalClass.$dispose;
 
         // hook abstract class
-        overloadMethod("com.demo.fridahook.HookClass$1", "setAbs", ["java.lang.String"], function(test) {
+        hookOverloadMethod("com.demo.fridahook.HookClass$1", "setAbs", ["java.lang.String"], function(test) {
             log("overload AbstractClass.setAbs(" + arguments[0] + ")");
             return this.setAbs("hook setAbs");
         });
 
         // overload inner class
-        overloadMethod("com.demo.fridahook.HookClass$InnerClass", "$init", ["com.demo.fridahook.HookClass", "java.lang.String"], function(clazz, test){
+        hookOverloadMethod("com.demo.fridahook.HookClass$InnerClass", "$init", ["com.demo.fridahook.HookClass", "java.lang.String"], function(clazz, test){
             log("overload HookClass.InnerClass(" + test + ")");
             return this.$init(clazz, "hook InnerClass");
         });

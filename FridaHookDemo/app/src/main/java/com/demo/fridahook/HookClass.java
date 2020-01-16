@@ -60,7 +60,7 @@ public class HookClass {
     public native String testNativeString(String test);
     public native NormalClass[] testNativeArray(NormalClass[] classes);
 
-    public void display(){
+    void display(){
         Log.d(TAG, "testInt result = " + testInt(666));
         Log.d(TAG, "testString result = " + testString("append a test string"));
         NormalClass[] normalClasses = {

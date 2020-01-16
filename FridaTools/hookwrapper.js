@@ -116,19 +116,13 @@ function hookMethod(className, methodName, callback){
     clazz.$dispose;
 }
 
-function hookMethod(className, methodName, callback){
-    var clazz = Java.use(className);
-    clazz[methodName].implementation = callback;
-    clazz.$dispose;
-}
-
 /* locating the specific class and hook the override method
  * className : hooked class name
  * methodName : hooked method name
  * argumentTypes : method arguments type array
  * callback : override method implementation
  */
-function overloadMethod(className, methodName, argumentTypes, callback){
+function hookOverloadMethod(className, methodName, argumentTypes, callback){
     var clazz = Java.use(className);
     clazz[methodName].overload.apply(this, argumentTypes).implementation = callback;
     clazz.$dispose;
@@ -271,4 +265,46 @@ function hookNativeMethodByOffset(moduleName, offset, onEnterCallbk, onLeaveCall
             }
         });
     }
+}
+
+function getApplication(){
+    return Java.use("android.app.ActivityThread").currentApplication();
+}
+
+function getPkgName(){
+    log("current package name = " + getApplication().getPackageName());
+    return getApplication().getPackageName();
+}
+
+function toast(message){
+    var curApplication = getApplication();
+    var context = curApplication.getApplicationContext();
+    var pkgName = curApplication.getPackageName();
+    var pkgMgr = curApplication.getPackageManager();
+    curApplication.$dispose;
+    var activity = pkgMgr.getLaunchIntentForPackage(pkgName).resolveActivityInfo(pkgMgr, 0);
+    var Runnable = Java.use("java.lang.Runnable");
+    var Toast = Java.use("android.widget.Toast");
+    var CharSequence = Java.use("java.lang.CharSequence");
+    var String = Java.use("java.lang.String");
+    var ToastRunnable = Java.registerClass({
+        name: "ToastRunnable",
+        implements: [Runnable, ],
+        methods: {
+            run: function(){
+                send("run in ToastRunnable");
+                Toast.makeText(context, Java.cast(String.$new(message), CharSequence), 0).show();
+            }
+        }
+    });
+    Runnable.$dispose;
+    Toast.$dispose;
+    CharSequence.$dispose;
+    String.$dispose;
+    Java.choose(activity.name.value, {
+        onMatch: function(instance) {
+            instance.runOnUiThread(ToastRunnable.$new());
+        },
+        onComplete: function() {}
+    });
 }
