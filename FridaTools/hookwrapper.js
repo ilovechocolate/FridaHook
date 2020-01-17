@@ -150,6 +150,19 @@ function getLoadedModules() {
     });
 }
 
+// enumerating all threads
+function getThreads() {
+    log("enumerating all threads ...");
+    Process.enumerateThreads({
+        onMatch: function(thread) {
+            log("Thread[" + thread.id + "](" + thread.state + ") : " +  JSON.stringify(thread.context));
+        },
+        onComplete: function() {
+            log("enumerating completed !!!");
+        }
+    });
+}
+
 // enumerating all exported symbols of the module
 function getExportSymbols(moduleName) {
     var symbols = Module.enumerateExportsSync(moduleName);
@@ -267,6 +280,45 @@ function hookNativeMethodByOffset(moduleName, offset, onEnterCallbk, onLeaveCall
     }
 }
 
+function byteArray2String(byteArray) {
+    var bytes = new Uint8Array(byteArray);
+    var res = "";
+    for(var i = 0; i < bytes.length; i++) {
+        res += String.fromCharCode(bytes[i]);
+    }
+    log("byteArray2String = " + res);
+    return res;
+}
+
+function dumpMemory(address, size){
+    log(hexdump(address, {
+        offset: 0,
+        length: size,
+        header: true,
+        ansi: true
+    }));
+    return new NativePointer(address).readByteArray(size);
+}
+
+function dumpDex(){
+    var dexHeader = "64 65 78 0a 30 33 35 00";      // dex.035
+    var res = [];
+    Process.enumerateRanges("r--").forEach(function(range){
+        try {
+            // 从 range.base 开始搜索 range.size 大小的内存，寻找匹配 dexHeader 的数据
+            Memory.scanSync(range.base, range.size, dexHeader).forEach(function(dex){
+                var memory = Process.findRangeByAddress(dex.address);
+                log(memory.file.path);
+                log("memory base = " + memory.base + ", size = " + memory.size);
+                log("dex address = " + dex.address + ", size = " + dex.address.add("0x20").readInt());
+            });
+        } catch(exception) {
+            log("deumpDex error! catch excpetion = " + exception);
+        }
+    });
+    return res;
+}
+
 function getApplication(){
     return Java.use("android.app.ActivityThread").currentApplication();
 }
@@ -278,33 +330,69 @@ function getPkgName(){
 
 function toast(message){
     var curApplication = getApplication();
-    var context = curApplication.getApplicationContext();
-    var pkgName = curApplication.getPackageName();
-    var pkgMgr = curApplication.getPackageManager();
-    curApplication.$dispose;
-    var activity = pkgMgr.getLaunchIntentForPackage(pkgName).resolveActivityInfo(pkgMgr, 0);
-    var Runnable = Java.use("java.lang.Runnable");
-    var Toast = Java.use("android.widget.Toast");
-    var CharSequence = Java.use("java.lang.CharSequence");
-    var String = Java.use("java.lang.String");
-    var ToastRunnable = Java.registerClass({
-        name: "ToastRunnable",
-        implements: [Runnable, ],
-        methods: {
-            run: function(){
-                send("run in ToastRunnable");
-                Toast.makeText(context, Java.cast(String.$new(message), CharSequence), 0).show();
+    if (curApplication != null) {
+        var context = curApplication.getApplicationContext();
+        var pkgName = curApplication.getPackageName();
+        var pkgMgr = curApplication.getPackageManager();
+        curApplication.$dispose;
+        var activity = pkgMgr.getLaunchIntentForPackage(pkgName).resolveActivityInfo(pkgMgr, 0);
+        var Runnable = Java.use("java.lang.Runnable");
+        var Toast = Java.use("android.widget.Toast");
+        var CharSequence = Java.use("java.lang.CharSequence");
+        var String = Java.use("java.lang.String");
+        var ToastRunnable = Java.registerClass({
+            name: "ToastRunnable",
+            implements: [Runnable, ],
+            fields: {
+                TAG: "java.lang.String",
+                content: "java.lang.String"
+            },
+            methods: {
+                $init: function() {
+                    this.TAG.value = String.$new("ToastRunnable");
+                    log("[" + this.TAG.value + "] run in init");
+                },
+                setContent: [{
+                    returnType: "void",
+                    argumentTypes: ["java.lang.String"],
+                    implementation: function(test){
+                        log("[" + this.TAG.value + "] run in setContent1");
+                        this.content.value = String.$new(test);
+                    }
+                }, {
+                    returnType: "void",
+                    argumentTypes: ["java.lang.String", "java.lang.String"],
+                    implementation: function(test1, test2){
+                        log("[" + this.TAG.value + "] run in setContent2");
+                        this.content.value = String.$new(test1 + test2);
+                    }
+                }],
+                run: function(){
+                    log("[" + this.TAG.value + "] maketoast");
+                    Toast.makeText(context, Java.cast(String.$new(this.content.value), CharSequence), 0).show();
+                }
             }
-        }
-    });
-    Runnable.$dispose;
-    Toast.$dispose;
-    CharSequence.$dispose;
-    String.$dispose;
-    Java.choose(activity.name.value, {
-        onMatch: function(instance) {
-            instance.runOnUiThread(ToastRunnable.$new());
-        },
-        onComplete: function() {}
-    });
+        });
+        Runnable.$dispose;
+        Toast.$dispose;
+        CharSequence.$dispose;
+        String.$dispose;
+        Java.choose(activity.name.value, {
+            onMatch: function(instance) {
+                var toast = ToastRunnable.$new();
+                toast.setContent(message);
+                instance.runOnUiThread(toast);
+                toast.setContent(message, "!");
+                instance.runOnUiThread(toast);
+            },
+            onComplete: function() {}
+        });
+    }
+}
+
+function printArgsInfo(args) {
+    log("argument count = " + args.length);
+    for(var i = 0; i < args.length; i++) {
+        log("arguments[" + i + "] = " + arguments[i]);
+    }
 }

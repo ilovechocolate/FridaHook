@@ -88,10 +88,33 @@ function toast(message){
     var ToastRunnable = Java.registerClass({
         name: "ToastRunnable",
         implements: [Runnable, ],
+        fields: {
+            TAG: "java.lang.String",
+            content: "java.lang.String"
+        },
         methods: {
+            $init: function() {
+                this.TAG.value = String.$new("ToastRunnable");
+                send("[" + this.TAG.value + "] run in init");
+            },
+            setContent: [{
+                returnType: "void",
+                argumentTypes: ["java.lang.String"],
+                implementation: function(test){
+                    send("[" + this.TAG.value + "] run in setContent1");
+                    this.content.value = String.$new(test);
+                }
+            }, {
+                returnType: "void",
+                argumentTypes: ["java.lang.String", "java.lang.String"],
+                implementation: function(test1, test2){
+                    send("[" + this.TAG.value + "] run in setContent2");
+                    this.content.value = String.$new(test1 + test2);
+                }
+            }],
             run: function(){
-                send("run in ToastRunnable");
-                Toast.makeText(context, Java.cast(String.$new(message), CharSequence), 0).show();
+                send("[" + this.TAG.value + "] maketoast");
+                Toast.makeText(context, Java.cast(String.$new(this.content.value), CharSequence), 0).show();
             }
         }
     });
@@ -101,14 +124,43 @@ function toast(message){
     String.$dispose;
     Java.choose(activity.name.value, {
         onMatch: function(instance) {
-            instance.runOnUiThread(ToastRunnable.$new());
+            var toast = ToastRunnable.$new();
+            toast.setContent(message, "!");
+            instance.runOnUiThread(toast);
         },
         onComplete: function() {}
     });
 }
 
+function testMemory() {
+    var address = Module.findBaseAddress("libnative-lib.so");
+    var addr = Memory.alloc(20);
+    if(address != null){
+        // 7F 45 4C 46 ......
+        Memory.copy(addr, address, 20);
+    }
+    addr.add(0x5).writeUtf8String("NANA");
+    var test = [0x61, 0x62, 0x63, 0x64, 0x65];
+    Memory.writeByteArray(addr.add(0xa), test);
+    console.log(hexdump(addr, {
+        offset: 0,
+        length: 20,
+        header: true,
+        ansi: true
+    }));
+    var dump = addr.readByteArray(20);
+    var bytes = new Uint8Array(dump);
+    var res = "";
+    for(var i = 0; i < bytes.length; i++) {
+        res += String.fromCharCode(bytes[i]);
+    }
+    send("get memory = " + res);
+    console.log("get memory = " + res);
+}
+
 Java.perform(function(){
     toast("lalala");
+    testMemory();
 });
 """
 
